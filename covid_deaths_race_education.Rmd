@@ -1,0 +1,37 @@
+---
+title: "COVID death proportions by race and education"
+author: "Kiran Bhattacharyya"
+date: "2/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## COVID-19 death proportions by race and education
+
+Here we will do some analysis on data released by CDC about how the total deaths due to COVID-19 differ between people of different racial categories and educational attainment. This data was collected between Jan 1, 2020 and Feb 1, 2021. It is open and can be downloaded from INSERT URL HERE.
+
+First, let's load in the libraries and take a look at the data.
+
+```{r get_data}
+library(tidyverse)
+library(ggplot2)
+
+# read in covid data
+covid_data <- read_csv('AH_Provisional_COVID-19_Deaths_by_Race_and_Educational_Attainment.csv')
+
+# change column names so they don't have messy characters
+names(covid_data) <- str_replace_all(names(covid_data), c(" " = "." , "-" = "" ))
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
