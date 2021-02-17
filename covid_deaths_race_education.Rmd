@@ -12,30 +12,43 @@ knit: (function(input_file, encoding) {
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-## COVID-19 death proportions by race and education
-
-Here we will do some analysis on data released by CDC about how the total deaths due to COVID-19 differ between people of different racial categories and educational attainment. This data was collected between Jan 1, 2020 and Feb 1, 2021. It is open and can be downloaded from INSERT URL HERE.
-
-First, let's load in the libraries and take a look at the data.
-
-```{r get_data}
 library(tidyverse)
 library(ggplot2)
+library(gridExtra)
+library(lemon)
+knit_print.data.frame <- lemon_print
+```
 
+Here I will do some analysis on data released by CDC about how the total deaths due to COVID-19 differ between people of different racial categories and educational attainment. This data was collected between Jan 1, 2020 and Feb 1, 2021. It is open and can be downloaded from https://catalog.data.gov/dataset/ah-provisional-covid-19-deaths-by-race-and-educational-attainment.
+
+First, let's first load in the data and clean up the column names a bit.
+
+```{r get_data, echo=TRUE}
 # read in covid data
 covid_data <- read_csv('AH_Provisional_COVID-19_Deaths_by_Race_and_Educational_Attainment.csv')
 
 # change column names so they don't have messy characters
 names(covid_data) <- str_replace_all(names(covid_data), c(" " = "." , "-" = "" ))
 ```
+### Examine the data
 
-## Including Plots
+If we take a look at the table, we can see that the data is provided for COVID deaths and total deaths over the period of time for each racial category and educational attainment.
 
-You can also embed plots, for example:
+```{r table_print, echo=TRUE, render=lemon_print}
+head(covid_data, 8)
+```
 
-```{r education_plot, echo=FALSE}
+The raw numbers of total deaths and total COVID deaths are not appropriate measures to compare since these racial categories compose dramatically different portions of the population. A more appropriate value to compare might be the *proportion of COVID deaths* out of the total deaths. 
+
+In a perfectly fair world, all people of different racial categories and educational attainment would be equally likely to contract COVID-19, equally likely to die of COVID-19, and also equally likely to die of any other cause. Therefore, in this perfectly fair world, the proportion of COVID-19 deaths would be the same across all categories. 
+
+Let's start with this `perfect-fair-world` assumption.
+
+### Covid deaths by education
+
+Let's see how the proportion of COVID deaths are different for different education levels when we aggregate across all racial categories.
+
+```{r education_plot, echo=TRUE}
 # group by education level and get total deaths in the education level
 by_education <- group_by(covid_data, Education.Level)
 edu_sum <- summarize(by_education,
@@ -46,12 +59,49 @@ edu_sum <- summarize(by_education,
 # add columns to summary table
 edu_sum <- mutate(edu_sum, 
                  covid_death_prop=tot_covid_death/tot_total_death)
-ggplot(data=edu_sum) + 
-  geom_col(mapping=aes(x=reorder(Education.Level, covid_death_prop), 
-                       y=covid_death_prop)) + 
+ggplot(data=edu_sum) +
+  geom_col(mapping=aes(x=reorder(Education.Level, covid_death_prop),
+                       y=covid_death_prop)) +
+  geom_hline(data = edu_sum, 
+             mapping = aes(yintercept = mean(covid_death_prop)),
+             alpha=0.5, linetype='dashed') +
   coord_flip() +
-  labs(y="Proportion of deaths due to Covid", x="Education level", 
-       title="Covid deaths related to education")
+  labs(y="Proportion of deaths due to COVID", x="Education level",
+       title="COVID deaths by educational attainment")
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Already we start to see deviation for from the `perfect-fair-world` scenario. Note that the proportion of COVID deaths is far higher for `8th grade or less` and `Unknown` education levels. There still seems to be some effect for educational attainment below a college level but these results are mixed. The dashed line is the mean proportion of deaths due to COVID across all educational attainments.
+
+### Covid deaths by race
+
+Let's now check the proportion of COVID deaths for different racial categories aggregated across all levels of education. 
+
+```{r race_plot, echo=TRUE}
+# group data by race
+by_race <- group_by(covid_data, Race.or.Hispanic.Origin)
+race_sum <- summarize(by_race,
+                    count=n(), 
+                    tot_total_death=sum(Total.Deaths, na.rm=TRUE), 
+                    tot_covid_death=sum(COVID19.Deaths, na.rm=TRUE))
+
+# add columns to summary table
+race_sum <- mutate(race_sum, 
+                 covid_death_prop=tot_covid_death/tot_total_death)
+ggplot(data=race_sum) + 
+  geom_col(mapping=aes(x=reorder(Race.or.Hispanic.Origin, covid_death_prop), 
+                       y=covid_death_prop)) + 
+  geom_hline(data = race_sum, 
+             mapping = aes(yintercept = mean(covid_death_prop)),
+             alpha=0.5, linetype='dashed') +
+  coord_flip() +
+  labs(y="Proportion of deaths due to COVID", x="Race", 
+       title="COVID deaths related to race")
+```
+
+By race, the disparities between the proportion of COVID-19 deaths are even more graded. The proportion of COVID deaths for `Hispanic` people is more than twice that of `Non-Hispanic White` people. The mean proportion of COVID deaths across all racial categories is the dashed line. `Non-Hispanic American Indian or Alaskan Native` and `Hispanic` racial categories fall far above this line.
+
+But if we look within each racial category, do we find that higher educational attainment has lower COVID deaths?
+
+### Covid deaths by race and education
+
