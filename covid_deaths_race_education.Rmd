@@ -3,6 +3,11 @@ title: "COVID death proportions by race and education"
 author: "Kiran Bhattacharyya"
 date: "2/15/2021"
 output: html_document
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 ---
 
 ```{r setup, include=FALSE}
@@ -30,8 +35,23 @@ names(covid_data) <- str_replace_all(names(covid_data), c(" " = "." , "-" = "" )
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r education_plot, echo=FALSE}
+# group by education level and get total deaths in the education level
+by_education <- group_by(covid_data, Education.Level)
+edu_sum <- summarize(by_education,
+                    count=n(), 
+                    tot_total_death=sum(Total.Deaths, na.rm=TRUE), 
+                    tot_covid_death=sum(COVID19.Deaths, na.rm=TRUE))
+
+# add columns to summary table
+edu_sum <- mutate(edu_sum, 
+                 covid_death_prop=tot_covid_death/tot_total_death)
+ggplot(data=edu_sum) + 
+  geom_col(mapping=aes(x=reorder(Education.Level, covid_death_prop), 
+                       y=covid_death_prop)) + 
+  coord_flip() +
+  labs(y="Proportion of deaths due to Covid", x="Education level", 
+       title="Covid deaths related to education")
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
