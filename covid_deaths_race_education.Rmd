@@ -19,7 +19,9 @@ library(lemon)
 knit_print.data.frame <- lemon_print
 ```
 
-Here I will do some analysis on data released by CDC about how the total deaths due to COVID-19 differ between people of different racial categories and educational attainment. This data was collected between Jan 1, 2020 and Feb 1, 2021. It is open and can be downloaded from https://catalog.data.gov/dataset/ah-provisional-covid-19-deaths-by-race-and-educational-attainment.
+Here I will do some analysis on data released by CDC about how the total deaths due to COVID-19 differ between people of different racial categories and educational attainment. This data was collected between Jan 1, 2020 and Feb 1, 2021. It is open and can be downloaded from: https://catalog.data.gov/dataset/ah-provisional-covid-19-deaths-by-race-and-educational-attainment.
+
+I also have a version of the data in the GitHub repo for this project along with the code found here: https://github.com/MiningMyBusiness/covid_race_and_education
 
 First, let's first load in the data and clean up the column names a bit.
 
