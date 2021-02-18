@@ -44,7 +44,7 @@ In a perfectly fair world, all people of different racial categories and educati
 
 Let's start with this `perfect-fair-world` assumption.
 
-### Covid deaths by education
+### Covid deaths grouped by education
 
 Let's see how the proportion of COVID deaths are different for different education levels when we aggregate across all racial categories.
 
@@ -67,13 +67,13 @@ ggplot(data=edu_sum) +
              alpha=0.5, linetype='dashed') +
   coord_flip() +
   labs(y="Proportion of deaths due to COVID", x="Education level",
-       title="COVID deaths by educational attainment")
+       title="COVID deaths grouped by educational attainment")
 
 ```
 
-Already we start to see deviation for from the `perfect-fair-world` scenario. Note that the proportion of COVID deaths is far higher for `8th grade or less` and `Unknown` education levels. There still seems to be some effect for educational attainment below a college level but these results are mixed. The dashed line is the mean proportion of deaths due to COVID across all educational attainments.
+Already we start to see deviation for from the `perfect-fair-world` scenario. Note that the proportion of COVID deaths is far higher for `8th grade or less` and `Unknown` education levels. There still seems to be some effect for educational attainment below a high-school level but these results are mixed. The dashed line is the mean proportion of deaths due to COVID across all educational attainments.
 
-### Covid deaths by race
+### Covid deaths grouped by race
 
 Let's now check the proportion of COVID deaths for different racial categories aggregated across all levels of education. 
 
@@ -96,12 +96,140 @@ ggplot(data=race_sum) +
              alpha=0.5, linetype='dashed') +
   coord_flip() +
   labs(y="Proportion of deaths due to COVID", x="Race", 
-       title="COVID deaths related to race")
+       title="COVID deaths grouped by race")
 ```
 
-By race, the disparities between the proportion of COVID-19 deaths are even more graded. The proportion of COVID deaths for `Hispanic` people is more than twice that of `Non-Hispanic White` people. The mean proportion of COVID deaths across all racial categories is the dashed line. `Non-Hispanic American Indian or Alaskan Native` and `Hispanic` racial categories fall far above this line.
+By race, the disparities between the proportion of COVID-19 deaths are even more graded. The proportion of COVID deaths for `Hispanic` people is more than twice that of `Non-Hispanic White` people. The mean proportion of COVID deaths across all racial categories is the dashed line. `Non-Hispanic American Indian or Alaska Native` and `Hispanic` racial categories fall far above this line.
 
 But if we look within each racial category, do we find that higher educational attainment has lower COVID deaths?
 
 ### Covid deaths by race and education
 
+Here are the proportion of deaths due to COVID for Hispanic people broken down by educational attainment. 
+
+```{r hispanic_edu, echo=TRUE}
+covid_data <- mutate(covid_data, 
+                     covid_death_prop=COVID19.Deaths/Total.Deaths)
+covid_data$Education.Level <- str_wrap(covid_data$Education.Level, 
+                                       width = 15)
+covid_data$Race.or.Hispanic.Origin <- str_wrap(covid_data$Race.or.Hispanic.Origin,
+                                               width = 15)
+
+ggplot(data=filter(covid_data, Race.or.Hispanic.Origin == 'Hispanic')) +
+    geom_col(mapping=aes(
+      x=factor(Education.Level,
+               levels = c("Unknown",
+                          "8th grade or\nless",
+                          "9 -12th grade,\nwith no diploma",
+                          "High school\ngraduate or GED\ncompleted",
+                          "Some college\ncredit, but no\ndegree",
+                          "Associate\ndegree",
+                          "Bachelor’s\ndegree" ,
+                          "Master’s degree",
+                          "Doctorate or\nProfessional\nDegree")), 
+      y=covid_death_prop)) +
+    geom_hline(data = filter(covid_data, 
+                             Race.or.Hispanic.Origin == 'Hispanic'), 
+             mapping = aes(yintercept = mean(covid_death_prop)),
+             alpha=0.5, linetype='dashed') +
+    coord_flip() +
+    labs(x="Education level", y="Proportion of deaths due to Covid",
+         title='COVID deaths grouped by education for Hispanic people')
+```
+
+I purposely ordered the educational attainment by degree to make it easier to see an effect. And we do see an effect of education on the proportion of total deaths due to COVID. 
+
+However we see a different trend when we inspect this same data for `Non-Hispanic American Indian or Alaska Native` people. 
+
+```{r am_edu, echo=TRUE}
+ggplot(data=filter(covid_data, 
+                   Race.or.Hispanic.Origin == 'Non-Hispanic\nAmerican Indian\nor Alaska\nNative')) +
+    geom_col(mapping=aes(
+      x=factor(Education.Level,
+               levels = c("Unknown",
+                          "8th grade or\nless",
+                          "9 -12th grade,\nwith no diploma",
+                          "High school\ngraduate or GED\ncompleted",
+                          "Some college\ncredit, but no\ndegree",
+                          "Associate\ndegree",
+                          "Bachelor’s\ndegree" ,
+                          "Master’s degree",
+                          "Doctorate or\nProfessional\nDegree")), 
+      y=covid_death_prop)) +
+    geom_hline(data = filter(covid_data, 
+                             Race.or.Hispanic.Origin == 'Hispanic'), 
+             mapping = aes(yintercept = mean(covid_death_prop)),
+             alpha=0.5, linetype='dashed') +
+    coord_flip() +
+    labs(x="Education level", y="Proportion of deaths due to Covid",
+         title='COVID deaths grouped by education for Non-Hispanic\nAmerican Indian or Alaska Native people')
+```
+
+There seems to be no clear trend or effect of education on the proportion of COVID deaths for this race. However, these estimates of proportion might be influenced by the comparatively few numbers of deaths of `Non-Hispanic American Indian or Alaska Native` people.
+
+```{r am_print, echo=TRUE,}
+am_edu <- filter(covid_data, Race.or.Hispanic.Origin == 'Non-Hispanic\nAmerican Indian\nor Alaska\nNative')
+head(am_edu[c('Education.Level','Race.or.Hispanic.Origin','COVID19.Deaths', 'Total.Deaths')], 8)
+```
+
+Let's look across all races and see if educational attainment has some influence on the proportion of COVID deaths. 
+
+```{r big_plot, echo=TRUE, fig.width=9, fig.height=12}
+df2 <- covid_data %>%
+  group_by(Race.or.Hispanic.Origin) %>%
+  summarise(mean_covid_death_prop = mean(covid_death_prop))
+
+ov_prop = mean(covid_data$covid_death_prop)
+ggplot(data=covid_data) + geom_point(mapping=aes(
+  x=factor(Education.Level,
+           levels = c("Unknown",
+                      "8th grade or\nless",
+                      "9 -12th grade,\nwith no diploma",
+                      "High school\ngraduate or GED\ncompleted",
+                      "Some college\ncredit, but no\ndegree",
+                      "Associate\ndegree",
+                      "Bachelor’s\ndegree" ,
+                      "Master’s degree",
+                      "Doctorate or\nProfessional\nDegree")), 
+  y=covid_death_prop)) + 
+  geom_hline(yintercept=ov_prop, color='red', alpha=0.5,
+             linetype="dashed") +
+  geom_hline(data = df2, 
+             mapping = aes(yintercept = mean_covid_death_prop),
+             alpha=0.5) + 
+  coord_flip() +
+  facet_wrap(~ Race.or.Hispanic.Origin, nrow=2) + 
+  labs(x="Education level", y="Proportion of deaths due to Covid",
+       title="Covid deaths by race and education")
+```
+
+In the above figure, each panel is a single race and each point is the proportions of COVID deaths for a specific educational attainment for that race. The red dashed line is in the same position in all the plots and it's the mean COVID death proportion across all racial and educational categories. The black line in each panel is different and is the mean COVID death proportion for that race across all education categories. 
+
+In the `perfect-fair-world` scenario, the red dashed line and the black line would fall on top of each other in each panel...
+
+The black line also serves another purpose visually. It can inform us whether increasing educational attainment actually reduces the proportion of COVID deaths within a racial category. For `Hispanic`, `Non-Hispanic Asian`, and `Non-Hispanic White` people, higher educational attainment does seem to have lower proportions of COVID death. However, this relationship does not seem to be consistent for all races.
+
+## How can COVID death proportions be different?
+
+Clearly, COVID death proportions are different for different races and different education attainments. However, higher educational attainment does not necessary correspond to lower COVID death proportions within each race. Education does not seem to be an equalizer in this case. In some ways, the effect of education on the proportion of COVID deaths seems to be further amplified or dampened by race.
+
+The proportion of COVID deaths could be higher for one group when compared to another when one group
+
+1. is more likely to get COVID.
+2. is more likely to die from COVID.
+3. is less likely to die of other reasons.
+
+I doubt the feasibility of option 3. However, option 1 and 2 seem sensible. I don't find it hard to believe that individuals of different races and educational attainment are more likely to get COVID or to die from COVID. 
+
+Some scenarios that might make one group more likely to get COVID are 
+
+1. genetic susceptability to contracting COVID
+2. inability to socially distance
+3. lack of desire to socially distance
+
+Some scenarios that might make one group more likely to die from COVID are 
+
+1. genetic susceptability to dying from COVID.
+2. lack of appropriate medical attention. 
+
+I think the chain of causation is fairly clear here to me. But I will leave it to the reader to draw their own conclusions about the reasons why COVID is not an equal-opportunity pandemic. 
